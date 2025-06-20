@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createBrowserSupabaseClient } from '@supabase/auth-helpers-nextjs';
-import type { Commission } from '@/lib/types';
+import type { Commission } from '@/lib/types/types';
 
 export function UserDashboard({ email }: { email: string }) {
   const [commissions, setCommissions] = useState<Commission[]>([]);
@@ -32,7 +32,7 @@ export function UserDashboard({ email }: { email: string }) {
       <p className="text-muted mb-4">Your Commissions:</p>
 
       {loading ? (
-        <p>Loading...</p>
+        <p>Loading ...</p>
       ) : commissions.length === 0 ? (
         <p>You haven't submitted any commissions yet.</p>
       ) : (

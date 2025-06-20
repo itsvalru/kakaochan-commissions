@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { createBrowserSupabaseClient } from '@supabase/auth-helpers-nextjs';
-import type { Commission } from '@/lib/types';
+import type { Commission } from '@/lib/types/types';
 
 const STATUS_ORDER = ['pending_review', 'awaiting_payment', 'in_progress', 'delivered', 'closed'];
 

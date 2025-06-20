@@ -14,5 +14,5 @@ export default function Callback() {
     })
   }, [])
 
-  return <div>Loading...</div>
+  return <div>Logge den Wampwoo ein...</div>
 }

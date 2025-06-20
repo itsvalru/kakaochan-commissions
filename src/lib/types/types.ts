@@ -47,3 +47,15 @@ export type CommissionFile = {
   filename: string | null;
   created_at: string;
 };
+
+
+export type UsageType = 'personal' | 'commercial' | 'content';
+
+export interface Step6UsageData {
+  usage: UsageType;
+  allowStreaming: boolean;
+}
+
+export interface Step8ExtraInfoData {
+  extraInfo: string;
+}
