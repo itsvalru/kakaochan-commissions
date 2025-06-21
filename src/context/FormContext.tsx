@@ -39,6 +39,9 @@ type FormContextType = {
   update: (newData: Partial<CommissionDraft>) => void;
   applyOffer: (offer: CommissionOffer) => void;
   reset: () => void;
+  resetFull: () => void;
+  currentStep: number;
+  setStep: (step: number) => void;
 };
 
 const FormContext = createContext<FormContextType | undefined>(undefined);
@@ -52,18 +55,31 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     return { ...defaultDraft };
   });
 
+  const [currentStep, setCurrentStep] = useState<number>(() => {
+    if (typeof window !== 'undefined') {
+      const storedStep = localStorage.getItem('commissionStep');
+      return storedStep ? parseInt(storedStep) : 0;
+    }
+    return 0;
+  });
+
   useEffect(() => {
     localStorage.setItem('commissionDraft', JSON.stringify(data));
-    console.log(data);
-    //console.log("OFFER", commissionOffers)
   }, [data]);
+
+  useEffect(() => {
+    localStorage.setItem('commissionStep', String(currentStep));
+  }, [currentStep]);
 
   const update = (newData: Partial<CommissionDraft>) => {
     setData((prev) => ({ ...prev, ...newData }));
   };
 
+  const setStep = (step: number) => {
+    setCurrentStep(step);
+  };
+
   const applyOffer = (offer: CommissionOffer) => {
-    console.log("OFFER", offer)
     setData((prev) => ({
       ...prev,
       base_price: offer.base_price,
@@ -80,8 +96,25 @@ export const FormProvider = ({ children }: { children: ReactNode }) => {
     localStorage.setItem('commissionDraft', JSON.stringify(defaultDraft));
   };
 
+  const resetFull = () => {
+    setData({ ...defaultDraft });
+    setCurrentStep(0);
+    localStorage.setItem('commissionDraft', JSON.stringify(defaultDraft));
+    localStorage.setItem('commissionStep', '0');
+  };
+
   return (
-    <FormContext.Provider value={{ data, update, reset, applyOffer }}>
+    <FormContext.Provider
+      value={{
+        data,
+        update,
+        applyOffer,
+        reset,
+        resetFull,
+        currentStep,
+        setStep,
+      }}
+    >
       {children}
     </FormContext.Provider>
   );

@@ -48,6 +48,26 @@ export default function SummaryStep({ onPrev }: StepProps) {
         <li><strong>Streaming Allowed:</strong> {data.allow_streaming ? 'Yes' : 'No (25% fee)'}</li>
         <li><strong>Characters:</strong> {data.character_count} {data.extra_character_price > 0 && `(Extra char. x${data.character_count - 1})`}</li>
       </ul>
+<div>
+  <h3 className="font-semibold mt-4">Commission Details:</h3>
+  {data.comm_specific_inputs?.filter((input) => {
+    if (input.type === 'boolean') return input.value === true;
+    if (input.type === 'input') return input.value;
+    if (input.type === 'list') return Array.isArray(input.value) && input.value.length > 0;
+  }).length === 0 && <p className="text-sm text-gray-500">None</p>}
+
+  <ul className="text-sm list-disc ml-6">
+    {data.comm_specific_inputs?.map((input, i) => {
+      if (input.type === 'boolean' && input.value === true)
+        return <li key={i}>{input.name} {input.price && `(+${input.price}€)`}</li>;
+      if (input.type === 'input' && input.value)
+        return <li key={i}>{input.name}: "{input.value}" {input.price && `(+${input.price}€)`}</li>;
+      if (input.type === 'list' && Array.isArray(input.value) && input.value.length > 0)
+        return <li key={i}>{input.name} x{input.value.length} {input.price && `(+${input.value.length * input.price}€)`}</li>;
+      return null;
+    })}
+  </ul>
+</div>
 
       <div>
         <h3 className="font-semibold mt-4">Add-Ons:</h3>
