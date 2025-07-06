@@ -1,36 +1,30 @@
-'use client';
+"use client";
 
-import { useFormContext } from '@/context/FormContext';
-import type { StepProps } from './types';
+import { useFormContext } from "@/context/FormContext";
+import Textarea from "@/components/ui/Textarea";
 
-export default function ExtraInfoStep({ onNext, onPrev }: StepProps) {
+export default function ExtraInfoStep() {
   const { data, update } = useFormContext();
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-xl font-bold">Extra Information</h2>
+    <div className="space-y-8">
+      <div className="text-center mb-6">
+        <h2 className="text-2xl font-bold text-[var(--red-light)] mb-3">
+          Extra Information
+        </h2>
+        <p className="text-[var(--red-muted)]">
+          Include anything else you want KakaoChan to know. This could be your
+          vision, references to style, meme ideas, personal boundaries, or
+          &quot;pls draw huge boobas&quot;.
+        </p>
+      </div>
 
-      <p className="text-sm text-gray-500">
-        Include anything else you want KakaoChan to know. This could be your vision, references to style, meme ideas, personal boundaries, or "pls draw huge boobas".
-      </p>
-
-      <textarea
-        className="w-full border rounded px-3 py-2 text-black min-h-[150px]"
+      <Textarea
         placeholder="Write here..."
         value={data.extra_info}
         onChange={(e) => update({ extra_info: e.target.value })}
+        rows={8}
       />
-
-      <div className="flex justify-between pt-4">
-        {onPrev && (
-          <button onClick={onPrev} className="px-4 py-2 border rounded">
-            Back
-          </button>
-        )}
-        <button onClick={onNext} className="px-4 py-2 bg-red-500 text-white rounded">
-          Continue
-        </button>
-      </div>
     </div>
   );
 }

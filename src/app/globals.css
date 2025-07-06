@@ -1,3 +1,91 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Vampire-Wolf Color Palette */
+:root {
+  /* Primary Background */
+  --bg-primary: #1a0a0a;
+  --bg-secondary: #0a0000;
+  --bg-tertiary: #2a0a0a;
+
+  /* Red Accent System */
+  --red-primary: #dc2626;
+  --red-secondary: #991b1b;
+  --red-tertiary: #7f1d1d;
+  --red-light: #fecaca;
+  --red-muted: #9ca3af;
+
+  /* Status Colors */
+  --success: #059669;
+  --warning: #d97706;
+  --error: #dc2626;
+
+  /* Tag Colors */
+  --tag-draft-bg: #9ca3af;
+  --tag-draft-text: #181018;
+  --tag-requested-bg: #f3e8ff;
+  --tag-requested-text: #7c3aed;
+  --tag-paid-bg: #d1fae5;
+  --tag-paid-text: #065f46;
+  --tag-unpaid-bg: #d39e9e;
+  --tag-unpaid-text: #440707;
+  --tag-estimate: #facc15;
+}
+
+/* Form Input System */
+@layer components {
+  .form-input {
+    @apply w-full px-4 py-3 bg-[var(--bg-secondary)] border border-[var(--red-tertiary)] rounded-lg text-[var(--red-light)] placeholder-[var(--red-muted)] focus:border-[var(--red-primary)] focus:ring-2 focus:ring-[var(--red-primary)] focus:ring-opacity-20 transition-all duration-200;
+  }
+
+  .form-button {
+    @apply px-6 py-3 bg-gradient-to-r from-[var(--red-primary)] to-[var(--red-secondary)] text-white font-semibold rounded-lg hover:from-[var(--red-secondary)] hover:to-[var(--red-tertiary)] transform hover:scale-105 transition-all duration-200 shadow-lg hover:shadow-xl;
+  }
+
+  .form-button-secondary {
+    @apply px-6 py-3 bg-transparent border border-[var(--red-tertiary)] text-[var(--red-light)] rounded-lg hover:bg-[var(--red-tertiary)] hover:border-[var(--red-primary)] transition-all duration-200;
+  }
+
+  .form-card {
+    @apply bg-[var(--bg-secondary)] rounded-lg p-6 border border-[var(--red-tertiary)];
+  }
+
+  .form-grid {
+    @apply grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6;
+  }
+}
+
+/* Hide scrollbars for custom horizontal scroll */
+.custom-scroll-hide::-webkit-scrollbar {
+  display: none;
+}
+.custom-scroll-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+/* Discord-like scrollbar for chat (thumb only, no track/background/arrows) */
+.discord-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: #5a5a5a transparent;
+}
+.discord-scrollbar::-webkit-scrollbar {
+  width: 8px;
+  background: transparent;
+}
+.discord-scrollbar::-webkit-scrollbar-thumb {
+  background: #5a5a5a;
+  border-radius: 8px;
+  min-height: 40px;
+  transition: background 0.2s;
+}
+.discord-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #a3a3a3;
+}
+.discord-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+.discord-scrollbar::-webkit-scrollbar-corner {
+  background: transparent;
+}

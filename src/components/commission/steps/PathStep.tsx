@@ -1,91 +1,139 @@
-'use client';
+"use client";
 
-import { useFormContext } from '@/context/FormContext';
-import { commissionOffers } from '@/lib/commissionOffers';
-import type { StepProps } from './types';
-import { useState, useMemo } from 'react';
-import { AnimatePresence, motion } from 'framer-motion';
+import { useFormContext } from "@/context/FormContext";
+import { useState, useMemo, useEffect } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { getCommissionOffers } from "@/lib/supabase-client";
+import type { StepProps } from "./types";
+import type { CommissionOffer } from "@/lib/types/types";
 
 export default function PathStep({ onNext }: StepProps) {
   const { data, update, applyOffer } = useFormContext();
   const [step, setStep] = useState<0 | 1 | 2>(0);
+  const [offers, setOffers] = useState<CommissionOffer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [isOfferLoading, setIsOfferLoading] = useState(false);
 
-  const categories = useMemo(() => {
-    return [...new Set(commissionOffers.map((o) => o.category.name))];
+  useEffect(() => {
+    getCommissionOffers()
+      .then((data) => {
+        setOffers(data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Failed to load commission offers");
+        setLoading(false);
+      });
   }, []);
 
+  const categories = useMemo(() => {
+    const categoryMap = new Map<string, { name: string; minPrice?: number }>();
+    offers.forEach((offer) => {
+      const existing = categoryMap.get(offer.category_name);
+      if (!existing) {
+        categoryMap.set(offer.category_name, {
+          name: offer.category_name,
+          minPrice: offer.base_price,
+        });
+      } else if (offer.base_price < (existing.minPrice ?? Infinity)) {
+        existing.minPrice = offer.base_price;
+      }
+    });
+    return Array.from(categoryMap.values());
+  }, [offers]);
+
   const types = useMemo(() => {
-    return [...new Set(
-      commissionOffers
-        .filter((o) => o.category.name === data.category.name)
-        .map((o) => o.type.name)
-    )];
-  }, [data.category.name]);
+    const typeMap = new Map<string, { name: string; minPrice?: number }>();
+    offers
+      .filter((o) => o.category_name === data.category.name)
+      .forEach((offer) => {
+        const existing = typeMap.get(offer.type_name);
+        if (!existing) {
+          typeMap.set(offer.type_name, {
+            name: offer.type_name,
+            minPrice: offer.base_price,
+          });
+        } else if (offer.base_price < (existing.minPrice ?? Infinity)) {
+          existing.minPrice = offer.base_price;
+        }
+      });
+    return Array.from(typeMap.values());
+  }, [offers, data.category.name]);
 
   const subtypes = useMemo(() => {
-    return [...new Set(
-      commissionOffers
-        .filter(
-          (o) =>
-            o.category.name === data.category.name &&
-            o.type.name === data.type.name &&
-            o.subtype?.name
-        )
-        .map((o) => o.subtype!.name)
-    )];
-  }, [data.category.name, data.type.name]);
+    const subtypeMap = new Map<string, { name: string; price: number }>();
+    offers
+      .filter(
+        (o) =>
+          o.category_name === data.category.name &&
+          o.type_name === data.type.name &&
+          o.subtype_name
+      )
+      .forEach((offer) => {
+        if (offer.subtype_name) {
+          subtypeMap.set(offer.subtype_name, {
+            name: offer.subtype_name,
+            price: 0, // You can extend this if you add subtype price to DB
+          });
+        }
+      });
+    return Array.from(subtypeMap.values());
+  }, [offers, data.category.name, data.type.name]);
 
   const selectCategory = (name: string) => {
     update({
       category: { name, price: 0 },
-      type: { name: '', price: 0 },
+      type: { name: "", price: 0 },
       subtype: undefined,
     });
     setStep(1);
   };
 
-  const selectType = (name: string) => {
+  const selectType = async (name: string) => {
     update({
       type: { name, price: 0 },
       subtype: undefined,
     });
-
-    const relatedSubtypes = commissionOffers
+    const relatedSubtypes = offers
       .filter(
         (o) =>
-          o.category.name === data.category.name &&
-          o.type.name === name &&
-          o.subtype?.name
+          o.category_name === data.category.name &&
+          o.type_name === name &&
+          o.subtype_name
       )
-      .map((o) => o.subtype!.name);
-
+      .map((o) => o.subtype_name!);
     if (relatedSubtypes.length > 0) {
       setStep(2);
     } else {
-      const offer = commissionOffers.find(
+      const offer = offers.find(
         (o) =>
-          o.category.name === data.category.name &&
-          o.type.name === name &&
-          !o.subtype
+          o.category_name === data.category.name &&
+          o.type_name === name &&
+          !o.subtype_name
       );
       if (offer) {
-        applyOffer(offer);
-        onNext();
+        setIsOfferLoading(true);
+        await applyOffer(offer);
+        setIsOfferLoading(false);
+        onNext?.();
       }
     }
   };
 
-  const selectSubtype = (name: string) => {
-    const offer = commissionOffers.find(
+  const selectSubtype = async (name: string) => {
+    const offer = offers.find(
       (o) =>
-        o.category.name === data.category.name &&
-        o.type.name === data.type.name &&
-        o.subtype?.name === name
+        o.category_name === data.category.name &&
+        o.type_name === data.type.name &&
+        o.subtype_name === name
     );
     if (offer) {
-      update({ subtype: offer.subtype });
-      applyOffer(offer);
-      onNext();
+      update({ subtype: { name: offer.subtype_name! } });
+      setIsOfferLoading(true);
+      await applyOffer(offer);
+      setIsOfferLoading(false);
+      onNext?.();
     }
   };
 
@@ -95,7 +143,7 @@ export default function PathStep({ onNext }: StepProps) {
       setStep(1);
     } else if (step === 1) {
       update({
-        type: { name: '', price: 0 },
+        type: { name: "", price: 0 },
         subtype: undefined,
       });
       setStep(0);
@@ -108,9 +156,37 @@ export default function PathStep({ onNext }: StepProps) {
     exit: { opacity: 0, x: -20 },
   };
 
+  if (loading) {
+    return (
+      <div className="text-center text-[var(--red-light)] py-12">
+        Loading commission offers...
+      </div>
+    );
+  }
+  if (error) {
+    return (
+      <div className="text-center text-[var(--red-primary)] py-12">{error}</div>
+    );
+  }
+
+  if (isOfferLoading) {
+    return (
+      <div className="text-center text-[var(--red-light)] py-12">
+        Loading commission details...
+      </div>
+    );
+  }
+
   return (
     <div className="space-y-8">
-      <h2 className="text-xl font-bold mb-4">Choose your commission path</h2>
+      <div className="text-center mb-8">
+        <h2 className="text-3xl font-bold text-[var(--red-light)] mb-4">
+          Choose Your Commission
+        </h2>
+        <p className="text-[var(--red-muted)] text-lg">
+          Select the perfect commission for your vision
+        </p>
+      </div>
 
       <AnimatePresence mode="wait">
         {step === 0 && (
@@ -118,20 +194,25 @@ export default function PathStep({ onNext }: StepProps) {
             key="step0"
             {...stepVariants}
             transition={{ duration: 0.25 }}
-            className="space-y-4"
+            className="space-y-6"
           >
-            <h3 className="font-semibold mb-2">1. Choose a Category</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {categories.map((name) => (
-                <button
-                  key={name}
-                  onClick={() => selectCategory(name)}
-                  className={`p-3 border rounded ${
-                    data.category.name === name ? 'border-red-500' : 'border-gray-300'
+            <div className="form-grid">
+              {categories.map((category) => (
+                <motion.button
+                  key={category.name}
+                  onClick={() => selectCategory(category.name)}
+                  className={`form-card p-6 text-left transition-all duration-200 hover:scale-105 ${
+                    data.category.name === category.name
+                      ? "border-[#dc2626] bg-[#2a0a0a]"
+                      : "border-[#7f1d1d] hover:border-[#dc2626] hover:bg-[#2a0a0a]"
                   }`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  {name}
-                </button>
+                  <div className="font-semibold text-[#fecaca] text-lg mb-2">
+                    {category.name}
+                  </div>
+                </motion.button>
               ))}
             </div>
           </motion.div>
@@ -142,20 +223,30 @@ export default function PathStep({ onNext }: StepProps) {
             key="step1"
             {...stepVariants}
             transition={{ duration: 0.25 }}
-            className="space-y-4"
+            className="space-y-6"
           >
-            <h3 className="font-semibold mb-2">2. Choose a Type</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {types.map((name) => (
-                <button
-                  key={name}
-                  onClick={() => selectType(name)}
-                  className={`p-3 border rounded ${
-                    data.type.name === name ? 'border-red-500' : 'border-gray-300'
+            <div className="form-grid">
+              {types.map((type) => (
+                <motion.button
+                  key={type.name}
+                  onClick={() => selectType(type.name)}
+                  className={`form-card p-6 text-left transition-all duration-200 hover:scale-105 ${
+                    data.type.name === type.name
+                      ? "border-[#dc2626] bg-[#2a0a0a]"
+                      : "border-[#7f1d1d] hover:border-[#dc2626] hover:bg-[#2a0a0a]"
                   }`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  {name}
-                </button>
+                  <div className="font-semibold text-[#fecaca] text-lg mb-2">
+                    {type.name}
+                  </div>
+                  {type.minPrice !== undefined && (
+                    <div className="text-[#9ca3af] text-sm">
+                      from €{type.minPrice}
+                    </div>
+                  )}
+                </motion.button>
               ))}
             </div>
           </motion.div>
@@ -166,20 +257,30 @@ export default function PathStep({ onNext }: StepProps) {
             key="step2"
             {...stepVariants}
             transition={{ duration: 0.25 }}
-            className="space-y-4"
+            className="space-y-6"
           >
-            <h3 className="font-semibold mb-2">3. Choose a Subtype</h3>
-            <div className="grid grid-cols-2 gap-2">
-              {subtypes.map((name) => (
-                <button
-                  key={name}
-                  onClick={() => selectSubtype(name)}
-                  className={`p-3 border rounded ${
-                    data.subtype?.name === name ? 'border-red-500' : 'border-gray-300'
+            <div className="form-grid">
+              {subtypes.map((subtype) => (
+                <motion.button
+                  key={subtype.name}
+                  onClick={() => selectSubtype(subtype.name)}
+                  className={`form-card p-6 text-left transition-all duration-200 hover:scale-105 ${
+                    data.subtype?.name === subtype.name
+                      ? "border-[#dc2626] bg-[#2a0a0a]"
+                      : "border-[#7f1d1d] hover:border-[#dc2626] hover:bg-[#2a0a0a]"
                   }`}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                 >
-                  {name}
-                </button>
+                  <div className="font-semibold text-[#fecaca] text-lg mb-2">
+                    {subtype.name}
+                  </div>
+                  {subtype.price > 0 && (
+                    <div className="text-[#9ca3af] text-sm">
+                      +€{subtype.price}
+                    </div>
+                  )}
+                </motion.button>
               ))}
             </div>
           </motion.div>
@@ -187,14 +288,15 @@ export default function PathStep({ onNext }: StepProps) {
       </AnimatePresence>
 
       {step > 0 && (
-        <div className="pt-6">
-          <button
-            onClick={goBack}
-            className="text-sm text-gray-400 hover:text-white"
-          >
+        <motion.div
+          className="text-center pt-6"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+        >
+          <button onClick={goBack} className="form-button-secondary">
             ← Back
           </button>
-        </div>
+        </motion.div>
       )}
     </div>
   );
